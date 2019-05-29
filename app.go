@@ -1,10 +1,12 @@
 package main
 
 import (
-	"bufio"
 	"encoding/gob"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"strings"
@@ -17,6 +19,11 @@ import (
 
 type waHandler struct {
 	c *whatsapp.Conn
+}
+
+type WAMessage struct {
+	Text        string `json:"text"`
+	Destination string `json:"destination"`
 }
 
 //HandleError needs to be implemented to be a valid WhatsApp handler
@@ -40,6 +47,7 @@ func (h *waHandler) HandleError(err error) {
 func (*waHandler) HandleTextMessage(message whatsapp.TextMessage) {
 	fmt.Printf("%v %v %v %v\n\t%v\n", message.Info.Timestamp, message.Info.Id, message.Info.RemoteJid, message.Info.QuotedMessageID, message.Text)
 }
+
 func main() {
 	//create new WhatsApp connection
 	wac, err := whatsapp.NewConn(5 * time.Second)
@@ -57,33 +65,13 @@ func main() {
 	<-time.After(3 * time.Second)
 
 	for true {
-		reader := bufio.NewReader(os.Stdin)
-		fmt.Print("Enter text: ")
-		text, _ := reader.ReadString('\n')
-		fmt.Println(text)
-
-		fmt.Print("Enter Phone number: ")
-		text2, _ := reader.ReadString('\n')
-		text2 = strings.TrimSuffix(text2, "\n")
-		fmt.Println(text2)
-
-		toWA := text2 + "@s.whatsapp.net"
-		fmt.Println(toWA)
-
-		msg := whatsapp.TextMessage{
-			Info: whatsapp.MessageInfo{
-				RemoteJid: toWA,
-			},
-			Text: text,
+		msg, _ := getWA()
+		fmt.Println(msg)
+		if msg.Destination != "" {
+			fmt.Println("mengirim pesan ke ", msg.Destination)
+			send(wac, msg.Destination, msg.Text)
 		}
-
-		msgId, err := wac.Send(msg)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "error sending message: %v", err)
-			os.Exit(1)
-		} else {
-			fmt.Println("Message Sent -> ID : " + msgId)
-		}
+		<-time.After(3 * time.Second)
 	}
 
 	c := make(chan os.Signal, 1)
@@ -100,6 +88,46 @@ func main() {
 		log.Fatalf("error saving session: %v", err)
 	}
 
+}
+
+func getWA() (WAMessage, error) {
+	resp, err := http.Get("http://kitchen.sam/wa-queue-444")
+	if err != nil {
+		panic(err)
+	}
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	fmt.Println("get:\n", string(body), 3)
+
+	var msg WAMessage
+	err = json.Unmarshal(body, &msg)
+	if err != nil {
+		return msg, fmt.Errorf("Failed decode ")
+	}
+	return msg, nil
+
+}
+
+func send(wac *whatsapp.Conn, destinationNum string, text string) {
+	num := strings.ReplaceAll(destinationNum, "+", "")
+	fmt.Println("Sending to ", num)
+	toWA := num + "@s.whatsapp.net"
+	fmt.Println(toWA)
+
+	msg := whatsapp.TextMessage{
+		Info: whatsapp.MessageInfo{
+			RemoteJid: toWA,
+		},
+		Text: text,
+	}
+
+	msgId, err := wac.Send(msg)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error sending message: %v", err)
+		os.Exit(1)
+	} else {
+		fmt.Println("Message Sent -> ID : " + msgId)
+	}
 }
 
 func login(wac *whatsapp.Conn, newSession bool) error {
@@ -134,7 +162,7 @@ func login(wac *whatsapp.Conn, newSession bool) error {
 
 func readSession() (whatsapp.Session, error) {
 	session := whatsapp.Session{}
-	file, err := os.Open(os.TempDir() + "/whatsappSessionsss.gob")
+	file, err := os.Open(os.TempDir() + "/whatsappSess.gob")
 	if err != nil {
 		return session, err
 	}
@@ -148,7 +176,7 @@ func readSession() (whatsapp.Session, error) {
 }
 
 func writeSession(session whatsapp.Session) error {
-	file, err := os.Create(os.TempDir() + "/whatsappSessionsss.gob")
+	file, err := os.Create(os.TempDir() + "/whatsappSess.gob")
 	if err != nil {
 		return err
 	}
