@@ -49,6 +49,13 @@ func (*waHandler) HandleTextMessage(message whatsapp.TextMessage) {
 }
 
 func main() {
+
+	argsWithoutProg := os.Args[1:]
+
+	queueUrl := argsWithoutProg[0]
+
+	<-time.After(10 * time.Second)
+
 	//create new WhatsApp connection
 	wac, err := whatsapp.NewConn(5 * time.Second)
 	if err != nil {
@@ -65,7 +72,7 @@ func main() {
 	<-time.After(3 * time.Second)
 
 	for true {
-		msg, _ := getWA()
+		msg, _ := getWA(queueUrl)
 		fmt.Println(msg)
 		if msg.Destination != "" {
 			fmt.Println("mengirim pesan ke ", msg.Destination)
@@ -90,8 +97,8 @@ func main() {
 
 }
 
-func getWA() (WAMessage, error) {
-	resp, err := http.Get("http://kitchen.sam/wa-queue-444")
+func getWA(queueUrl string) (WAMessage, error) {
+	resp, err := http.Get(queueUrl)
 	if err != nil {
 		panic(err)
 	}
