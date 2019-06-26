@@ -21,11 +21,6 @@ type waHandler struct {
 	c *whatsapp.Conn
 }
 
-type WAMessage struct {
-	Text        string `json:"text"`
-	Destination string `json:"destination"`
-}
-
 //HandleError needs to be implemented to be a valid WhatsApp handler
 func (h *waHandler) HandleError(err error) {
 
@@ -50,11 +45,11 @@ func (*waHandler) HandleTextMessage(message whatsapp.TextMessage) {
 
 func main() {
 
-	argsWithoutProg := os.Args[1:]
+	queueUrl := config.SendPopURL
 
-	queueUrl := argsWithoutProg[0]
+	fmt.Println("Connecting API...", queueUrl)
 
-	<-time.After(10 * time.Second)
+	<-time.After(2 * time.Second)
 
 	//create new WhatsApp connection
 	wac, err := whatsapp.NewConn(5 * time.Second)
@@ -74,9 +69,9 @@ func main() {
 	for true {
 		msg, _ := getWA(queueUrl)
 		fmt.Println(msg)
-		if msg.Destination != "" {
-			fmt.Println("mengirim pesan ke ", msg.Destination)
-			send(wac, msg.Destination, msg.Text)
+		if msg.To != "" {
+			fmt.Println("mengirim pesan ke ", msg.To)
+			send(wac, msg.To, msg.Message)
 		}
 		<-time.After(3 * time.Second)
 	}
@@ -97,7 +92,7 @@ func main() {
 
 }
 
-func getWA(queueUrl string) (WAMessage, error) {
+func getWA(queueUrl string) (Message, error) {
 	resp, err := http.Get(queueUrl)
 	if err != nil {
 		panic(err)
@@ -106,11 +101,13 @@ func getWA(queueUrl string) (WAMessage, error) {
 	body, err := ioutil.ReadAll(resp.Body)
 	fmt.Println("get:\n", string(body), 3)
 
-	var msg WAMessage
-	err = json.Unmarshal(body, &msg)
+	var msg Message
+	var pr PageResponse
+	err = json.Unmarshal(body, &pr)
 	if err != nil {
 		return msg, fmt.Errorf("Failed decode ")
 	}
+	msg = pr.Data
 	return msg, nil
 
 }
@@ -169,7 +166,7 @@ func login(wac *whatsapp.Conn, newSession bool) error {
 
 func readSession() (whatsapp.Session, error) {
 	session := whatsapp.Session{}
-	file, err := os.Open(os.TempDir() + "/whatsappSess.gob")
+	file, err := os.Open("a.gob")
 	if err != nil {
 		return session, err
 	}
@@ -183,7 +180,7 @@ func readSession() (whatsapp.Session, error) {
 }
 
 func writeSession(session whatsapp.Session) error {
-	file, err := os.Create(os.TempDir() + "/whatsappSess.gob")
+	file, err := os.Create("a.gob")
 	if err != nil {
 		return err
 	}
