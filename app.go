@@ -41,6 +41,9 @@ func (h *waHandler) HandleError(err error) {
 //Optional to be implemented. Implement HandleXXXMessage for the types you need.
 func (*waHandler) HandleTextMessage(message whatsapp.TextMessage) {
 	fmt.Printf("%v %v %v %v\n\t%v\n", message.Info.Timestamp, message.Info.Id, message.Info.RemoteJid, message.Info.QuotedMessageID, message.Text)
+	var msg WhatsappMessage
+	msg.Parse(message)
+	msg.Save()
 }
 
 func main() {

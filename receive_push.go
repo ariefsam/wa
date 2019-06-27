@@ -13,6 +13,7 @@ func PushReceive(data Message) (response PageResponse) {
 	resp, err := http.Post(config.ReceivePushURL, "application/json", bytes.NewBuffer(requestBody))
 	if err != nil {
 		fmt.Println(err)
+		return
 	}
 	body, _ := ioutil.ReadAll(resp.Body)
 	_ = json.Unmarshal(body, &response)
