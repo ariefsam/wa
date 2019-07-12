@@ -43,7 +43,17 @@ func (*waHandler) HandleTextMessage(message whatsapp.TextMessage) {
 	fmt.Printf("%v %v %v %v\n\t%v\n", message.Info.Timestamp, message.Info.Id, message.Info.RemoteJid, message.Info.QuotedMessageID, message.Text)
 	var msg WhatsappMessage
 	msg.Parse(message)
-	msg.Save()
+	err := msg.Save()
+	if err == nil {
+		if !msg.FromMe {
+
+			var receiveMessage Message
+			receiveMessage.From = msg.ParseFromNumber()
+			receiveMessage.Message = msg.Text
+			receiveMessage.TimeStamp = msg.Timestamp
+			PushReceive(receiveMessage)
+		}
+	}
 }
 
 func main() {
@@ -70,8 +80,11 @@ func main() {
 	<-time.After(3 * time.Second)
 
 	for true {
-		msg, _ := getWA(queueUrl)
-		fmt.Println(msg)
+		var msg Message
+		msg, err := getWA(queueUrl)
+		if err != nil {
+			continue
+		}
 		if msg.To != "" {
 			fmt.Println("mengirim pesan ke ", msg.To)
 			send(wac, msg.To, msg.Message)
@@ -98,11 +111,11 @@ func main() {
 func getWA(queueUrl string) (Message, error) {
 	resp, err := http.Get(queueUrl)
 	if err != nil {
-		panic(err)
+		fmt.Println(err)
+		return Message{}, err
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
-	fmt.Println("get:\n", string(body), 3)
 
 	var msg Message
 	var pr PageResponse
@@ -119,7 +132,6 @@ func send(wac *whatsapp.Conn, destinationNum string, text string) {
 	num := strings.ReplaceAll(destinationNum, "+", "")
 	fmt.Println("Sending to ", num)
 	toWA := num + "@s.whatsapp.net"
-	fmt.Println(toWA)
 
 	msg := whatsapp.TextMessage{
 		Info: whatsapp.MessageInfo{
@@ -134,6 +146,7 @@ func send(wac *whatsapp.Conn, destinationNum string, text string) {
 		os.Exit(1)
 	} else {
 		fmt.Println("Message Sent -> ID : " + msgId)
+
 	}
 }
 

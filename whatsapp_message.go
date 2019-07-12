@@ -1,6 +1,8 @@
 package main
 
 import (
+	"strings"
+
 	"github.com/Rhymen/go-whatsapp"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
@@ -8,7 +10,7 @@ import (
 
 type WhatsappMessage struct {
 	gorm.Model
-	WhatsappId      string `gorm:"type:varchar(100);unique_index"`
+	WhatsappId      string `gorm:"type:varchar(255);unique_index"`
 	RemoteJid       string
 	SenderJid       string
 	FromMe          bool
@@ -33,7 +35,6 @@ func (waMsg *WhatsappMessage) Parse(wa whatsapp.TextMessage) {
 
 func (waMsg *WhatsappMessage) Save() (err error) {
 	a := func(db *gorm.DB) {
-
 		db.Create(&waMsg)
 	}
 	DB(a)
@@ -46,5 +47,11 @@ func (waMsg *WhatsappMessage) FindByWhatsappID(id string) {
 		db.First(&waMsg, "whatsapp_id=?", id)
 	}
 	DB(a)
+	return
+}
+
+func (waMsg *WhatsappMessage) ParseFromNumber() (from string) {
+	stringSlice := strings.Split(waMsg.RemoteJid, "@")
+	from = "+" + stringSlice[0]
 	return
 }

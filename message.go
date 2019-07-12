@@ -4,7 +4,7 @@ type Message struct {
 	From      string
 	To        string
 	Message   string
-	TimeStamp int64
+	TimeStamp uint64
 }
 
 type PageResponse struct {
