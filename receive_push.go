@@ -18,6 +18,5 @@ func PushReceive(data Message) (response PageResponse) {
 	body, _ := ioutil.ReadAll(resp.Body)
 	_ = json.Unmarshal(body, &response)
 
-	fmt.Println("Ada pesan masuk ", response.Data)
 	return
 }

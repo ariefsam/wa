@@ -10,9 +10,10 @@ import (
 )
 
 type sceWA struct {
-	name         string
-	wa           whatsapp.TextMessage
-	expectedMesg WhatsappMessage
+	name          string
+	wa            whatsapp.TextMessage
+	expectedMesg  WhatsappMessage
+	expectedGroup bool
 }
 
 func Test_waHandler_HandleTextMessage(t *testing.T) {
@@ -29,8 +30,10 @@ func Test_waHandler_HandleTextMessage(t *testing.T) {
 		name: "Testing Normal",
 		wa: whatsapp.TextMessage{
 			Info: whatsapp.MessageInfo{
-				Id:       id,
-				PushName: pushname,
+				Id:        id,
+				PushName:  pushname,
+				RemoteJid: "6285219132737@s.whatsapp.net",
+				SenderJid: "",
 			},
 			Text: rndstring,
 		},
@@ -38,7 +41,33 @@ func Test_waHandler_HandleTextMessage(t *testing.T) {
 			WhatsappId: id,
 			PushName:   pushname,
 			Text:       rndstring,
+			RemoteJid:  "6285219132737@s.whatsapp.net",
+			SenderJid:  "6285219132737@s.whatsapp.net",
 		},
+	})
+	id, _ = sid.Generate()
+	pushname, _ = sid.Generate()
+	rndstring, _ = sid.Generate()
+	tests = append(tests, sceWA{
+		name: "Testing Group",
+		wa: whatsapp.TextMessage{
+			Info: whatsapp.MessageInfo{
+				Id:        id,
+				PushName:  pushname,
+				RemoteJid: "6285219132737-1562921107@g.us",
+				SenderJid: "6285219132737@s.whatsapp.net",
+			},
+			Text: rndstring,
+		},
+		expectedMesg: WhatsappMessage{
+			WhatsappId: id,
+			PushName:   pushname,
+			Text:       rndstring,
+			RemoteJid:  "6285219132737-1562921107@g.us",
+			SenderJid:  "6285219132737@s.whatsapp.net",
+		},
+
+		expectedGroup: true,
 	})
 
 	for _, tt := range tests {
@@ -55,7 +84,7 @@ func Test_waHandler_HandleTextMessage(t *testing.T) {
 			tt.expectedMesg.CreatedAt = msgFromDB.CreatedAt
 			tt.expectedMesg.UpdatedAt = msgFromDB.UpdatedAt
 			assert.Equal(t, tt.expectedMesg, msgFromDB)
-
+			assert.Equal(t, msgFromDB.IsGroup(), tt.expectedGroup)
 		})
 	}
 }

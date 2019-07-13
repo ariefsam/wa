@@ -18,7 +18,7 @@ type WhatsappMessage struct {
 	PushName        string
 	Status          int
 	QuotedMessageID string
-	Text            string
+	Text            string `gorm:"type:longtext;unique_index"`
 }
 
 func (waMsg *WhatsappMessage) Parse(wa whatsapp.TextMessage) {
@@ -27,18 +27,26 @@ func (waMsg *WhatsappMessage) Parse(wa whatsapp.TextMessage) {
 	waMsg.Text = wa.Text
 	waMsg.RemoteJid = wa.Info.RemoteJid
 	waMsg.SenderJid = wa.Info.SenderJid
+	if waMsg.SenderJid == "" {
+		waMsg.SenderJid = wa.Info.Source.GetParticipant()
+	}
+	if waMsg.SenderJid == "" {
+		waMsg.SenderJid = waMsg.RemoteJid
+	}
 	waMsg.FromMe = wa.Info.FromMe
 	waMsg.Timestamp = wa.Info.Timestamp
 	waMsg.Status = int(wa.Info.Status)
 	waMsg.QuotedMessageID = wa.Info.QuotedMessageID
 }
 
-func (waMsg *WhatsappMessage) Save() (err error) {
+func (waMsg *WhatsappMessage) Save() error {
+	var b error
 	a := func(db *gorm.DB) {
-		db.Create(&waMsg)
+		err := db.Create(&waMsg).Error
+		b = err
 	}
 	DB(a)
-	return
+	return b
 }
 
 func (waMsg *WhatsappMessage) FindByWhatsappID(id string) {
@@ -51,7 +59,17 @@ func (waMsg *WhatsappMessage) FindByWhatsappID(id string) {
 }
 
 func (waMsg *WhatsappMessage) ParseFromNumber() (from string) {
-	stringSlice := strings.Split(waMsg.RemoteJid, "@")
+	stringSlice := strings.Split(waMsg.SenderJid, "@")
 	from = "+" + stringSlice[0]
+	return
+}
+
+func (waMsg *WhatsappMessage) IsGroup() (ret bool) {
+	stringSlice := strings.Split(waMsg.RemoteJid, "@")
+	if len(stringSlice) > 1 {
+		if stringSlice[1] == "g.us" {
+			ret = true
+		}
+	}
 	return
 }

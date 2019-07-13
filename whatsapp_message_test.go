@@ -27,7 +27,7 @@ func TestWhatsappMessage_ParseFromNumber(t *testing.T) {
 	}{
 		{
 			name:     "Test standard wa",
-			fields:   fields{RemoteJid: "6285219132738@s.whatsapp.net"},
+			fields:   fields{SenderJid: "6285219132738@s.whatsapp.net"},
 			wantFrom: "+6285219132738",
 		},
 	}
