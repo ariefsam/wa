@@ -2,6 +2,7 @@ package main
 
 import "github.com/jinzhu/gorm"
 import _ "github.com/jinzhu/gorm/dialects/mysql"
+import _ "github.com/jinzhu/gorm/dialects/sqlite"
 
 var config Config
 
@@ -15,7 +16,7 @@ func init() {
 }
 
 func DB(a func(*gorm.DB)) {
-	db, err := gorm.Open("mysql", config.DB.Username+":"+config.DB.Password+"@/"+config.DB.Database+"?charset=utf8&parseTime=True&loc=Local")
+	db, err := gorm.Open(config.DB.Driver, config.DB.Connection)
 	if err != nil {
 		panic("failed to connect database")
 	}

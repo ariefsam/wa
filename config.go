@@ -11,9 +11,8 @@ type Config struct {
 	ReceivePushURL string
 	SendPopURL     string
 	DB             struct {
-		Database string
-		Username string
-		Password string
+		Driver     string
+		Connection string
 	}
 }
 
@@ -25,8 +24,7 @@ func LoadConfig() (data Config) {
 
 	data.ReceivePushURL = os.Getenv("RECEIVE_PUSH_URL")
 	data.SendPopURL = os.Getenv("SEND_POP_URL")
-	data.DB.Username = os.Getenv("DB_USERNAME")
-	data.DB.Password = os.Getenv("DB_PASSWORD")
-	data.DB.Database = os.Getenv("DB_DATABASE")
+	data.DB.Driver = os.Getenv("DB_DRIVER")
+	data.DB.Connection = os.Getenv("DB_CONNECTION")
 	return data
 }
